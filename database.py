@@ -13,14 +13,14 @@ def create_table(cls):
     db.create_tables([cls])
     return cls
 
-@create_table(MyModel)
+@create_table
 class Group(MyModel):
     name = CharField(unique=True)
 
-@create_table(MyModel)
+@create_table
 class Probe(MyModel):
     name = CharField()
-    secret_key = UUIDField(unique=True, default=uuid.uuid4)
+    secret_key = CharField(unique=True, default=lambda: str(uuid.uuid4))
     group = ForeignKeyField(Group)
 
 
