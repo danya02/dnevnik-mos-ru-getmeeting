@@ -1,0 +1,22 @@
+{
+
+  "manifest_version": 2,
+  "name": "dnevnik.mos.ru cookie collector",
+  "version": "1.0",
+
+  "description": "Sends your cookies for dnevnik.mos.ru to the notification server",
+
+  "icons": {
+    "48": "icons/border-48.png"
+  },
+
+  "permissions": [
+    "cookies",
+    "webRequest",
+    "*://dnevnik.mos.ru/core/api/*",
+    "*://dnevnik.mos.ru/"
+  ], 
+
+  "background": { "scripts": ["send_cookies.js"] }
+
+}
