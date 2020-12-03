@@ -20,16 +20,16 @@ class Group(MyModel):
 @create_table(MyModel)
 class Probe(MyModel):
     name = CharField()
-    secret_key = UUIDField(default=uuid.uuid4)
+    secret_key = UUIDField(unique=True, default=uuid.uuid4)
     group = ForeignKeyField(Group)
 
 
 @create_table
 class CookieJar(MyModel):
     submitter = ForeignKeyField(Probe)
-    props = TextField()
+    data = TextField()
     submitted_at = DateTimeField(default=datetime.datetime.now)
-    is_valid = BooleanField()
+    is_valid = BooleanField(default=True)
 
 
 @create_table
