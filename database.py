@@ -2,6 +2,7 @@ from peewee import *
 import datetime
 import uuid
 import json
+import logging
 
 db = MySQLDatabase('dnevnik', user='dnevnik', password='dnevnik')
 
@@ -20,7 +21,7 @@ class Group(MyModel):
 @create_table
 class Probe(MyModel):
     name = CharField()
-    secret_key = CharField(unique=True, default=lambda: str(uuid.uuid4))
+    secret_key = CharField(unique=True, default=lambda: str(uuid.uuid4()))
     group = ForeignKeyField(Group)
 
 
@@ -46,10 +47,19 @@ class Meeting(MyModel):
     
     @staticmethod
     def create_from_meeting_id(id):
-        data = requests.get('https://dnevnik.mos.ru/vcs/links?scheduled_lesson_id='+str(id)).json()
-        return Meeting.create(meeting_id=id, data=json.dumps(data), lesson_name=data['_embedded']['link_views'][0]['link_name'], 
-                starts_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['start_date_time']),
-                created_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['sent_date_time']))
+        logging.info('Creating meeting by ID', id)
+        req = requests.get('https://dnevnik.mos.ru/vcs/links?scheduled_lesson_id='+str(id))
+        if req.status_code == 204:
+            logging.warn('Meeting by ID', id, 'does not exist??!')
+            return None
+        elif req.status_code == 200:
+            data = req.json()
+            return Meeting.create(meeting_id=id, data=json.dumps(data), lesson_name=data['_embedded']['link_views'][0]['link_name'], 
+                    starts_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['start_date_time']),
+                    created_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['sent_date_time']))
+        else:
+            logging.error('Unexpected status code:', requests.status_code,'\n', req.text)
+            return None
 
 
 @create_table
