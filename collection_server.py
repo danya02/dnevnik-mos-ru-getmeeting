@@ -43,7 +43,7 @@ def register_cookiejar(sk):
     new_cj = CookieJar.create(submitter=probe, data=json.dumps(cookies))
     logging.info('New cookie jar', new_cj, 'created')
 
-    dnevnik.create_db_lessons(cj, datetime.date.today())
+    dnevnik.create_db_lessons(new_cj, datetime.date.today())
 
     return jsonify({'result':'ok'})
 

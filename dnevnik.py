@@ -2,10 +2,11 @@ import requests
 from database import *
 import json
 import logging
+import itertools
 
 def get_with_cookiejar(url, cj, **kwargs):
     cookies = json.loads(cj.data)
-    req = requests.get(url, cookies=cookie, headers={'Accept': 'application/json'}, **kwargs)
+    req = requests.get(url, cookies=cookies, headers={'Accept': 'application/json'}, **kwargs)
     return req
 
 def cookiejar_valid(cj):
@@ -44,5 +45,11 @@ def get_scheduled_lesson_ids(cj, for_date):
     return ids
 
 def create_db_lessons(cj, for_date):
-    console.log("Creating meetings for cookie jar", cj, "and date", for_date.isoformat())
-    return list(map(Meeting.create_from_meeting_id, get_scheduled_lesson_ids(cj, for_date)))
+    logging.debug("Creating meetings for cookie jar", cj, "and date", for_date.isoformat())
+    meetings = []
+    for id in get_scheduled_lesson_ids(cj, for_date):
+        try:
+            meetings.append(Meeting.create_from_meeting_id(id, cj))
+        except IntegrityError:
+            logging.debug("Lesson by id", id, "already in database, ignoring")
+    return meetings

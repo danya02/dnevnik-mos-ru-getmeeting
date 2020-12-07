@@ -3,6 +3,7 @@ import datetime
 import uuid
 import json
 import logging
+import requests
 
 db = MySQLDatabase('dnevnik', user='dnevnik', password='dnevnik')
 
@@ -46,7 +47,7 @@ class Meeting(MyModel):
     notified_before_lesson = BooleanField(default=False)
     
     @staticmethod
-    def create_from_meeting_id(id):
+    def create_from_meeting_id(id, fetched_using_cj):
         logging.info('Creating meeting by ID', id)
         req = requests.get('https://dnevnik.mos.ru/vcs/links?scheduled_lesson_id='+str(id))
         if req.status_code == 204:
@@ -56,7 +57,8 @@ class Meeting(MyModel):
             data = req.json()
             return Meeting.create(meeting_id=id, data=json.dumps(data), lesson_name=data['_embedded']['link_views'][0]['link_name'], 
                     starts_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['start_date_time']),
-                    created_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['sent_date_time']))
+                    created_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['sent_date_time']),
+                    group=fetched_using_cj.submitter.group)
         else:
             logging.error('Unexpected status code:', requests.status_code,'\n', req.text)
             return None
