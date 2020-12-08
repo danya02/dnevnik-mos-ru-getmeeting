@@ -4,6 +4,7 @@ import uuid
 import json
 import logging
 import requests
+import dateutil.parser
 
 db = MySQLDatabase('dnevnik', user='dnevnik', password='dnevnik')
 
@@ -35,10 +36,19 @@ class CookieJar(MyModel):
 
 
 @create_table
+class MeetingBatch(MyModel):
+    fetched_at = DateTimeField(default=datetime.datetime.now)
+
+def parse_date(date):
+    return dateutil.parser.isoparse(date)
+
+@create_table
 class Meeting(MyModel):
     group = ForeignKeyField(Group)
     meeting_id = IntegerField(unique=True)
     fetched_at = DateTimeField(default=datetime.datetime.now)
+    batch = ForeignKeyField(MeetingBatch, backref='meetings', null=True)
+
     data = TextField()
     lesson_name = CharField()
     starts_at = DateTimeField()
@@ -47,20 +57,20 @@ class Meeting(MyModel):
     notified_before_lesson = BooleanField(default=False)
     
     @staticmethod
-    def create_from_meeting_id(id, fetched_using_cj):
-        logging.info('Creating meeting by ID', id)
+    def create_from_meeting_id(id, fetched_using_cj, batch=None):
+        logging.info('Creating meeting by ID %d', id)
         req = requests.get('https://dnevnik.mos.ru/vcs/links?scheduled_lesson_id='+str(id))
         if req.status_code == 204:
-            logging.warn('Meeting by ID', id, 'does not exist??!')
+            logging.warn('Meeting by ID %d does not exist??!', id)
             return None
         elif req.status_code == 200:
             data = req.json()
             return Meeting.create(meeting_id=id, data=json.dumps(data), lesson_name=data['_embedded']['link_views'][0]['link_name'], 
-                    starts_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['start_date_time']),
-                    created_at=datetime.datetime.fromisoformat(data['_embedded']['link_views'][0]['sent_date_time']),
-                    group=fetched_using_cj.submitter.group)
+                    starts_at=parse_date(data['_embedded']['link_views'][0]['start_date_time']),
+                    created_at=parse_date(data['_embedded']['link_views'][0]['sent_date_time']),
+                    group=fetched_using_cj.submitter.group, batch=batch)
         else:
-            logging.error('Unexpected status code:', requests.status_code,'\n', req.text)
+            logging.error('Unexpected status code: %d %s %s', requests.status_code,'\n', req.text)
             return None
 
 

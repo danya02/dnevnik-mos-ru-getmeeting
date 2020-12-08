@@ -10,27 +10,27 @@ def get_with_cookiejar(url, cj, **kwargs):
     return req
 
 def cookiejar_valid(cj):
-    logging.debug('Checking if cookie jar', cj, 'is valid')
+    logging.debug('Checking if cookie jar %s is valid', repr(cj))
     cookies = json.loads(cj.data)
     req = get_with_cookiejar('https://dnevnik.mos.ru/core/api/student_profiles/' + str(cookies['profile_id']), cj)
     if req.status_code == 200:
-        logging.info('Cookie jar', cj, 'is valid')
+        logging.info('Cookie jar %s is valid', repr(cj))
         return True
-    logging.warn('Cookie jar', cj, 'is not valid')
+    logging.warn('Cookie jar %s is not valid', repr(cj))
     return False
 
 
 def get_user_group_list(cj):
-    logging.debug('Getting group list for cookie jar', cj)
+    logging.debug('Getting group list for cookie jar %s', repr(cj))
     cookies = json.loads(cj.data)
     req = get_with_cookiejar('https://dnevnik.mos.ru/core/api/student_profiles/' + str(cookies['profile_id']), cj).json()
     grp = req['groups']
-    logging.debug('User has', len(grp), 'groups')
+    logging.info('User has %d groups', len(grp))
     return grp
 
 
 def get_scheduled_lesson_ids(cj, for_date):
-    logging.debug("Getting scheduled lessons using cookie jar", cj, "and date", for_date.isoformat())
+    logging.info("Getting scheduled lessons using cookie jar %s and date %s", repr(cj), for_date.isoformat())
     groups = get_user_group_list(cj)
     groups_commasep = ','.join(map(lambda x: str(x['id']), groups))
     cookies = json.loads(cj.data)
@@ -40,16 +40,19 @@ def get_scheduled_lesson_ids(cj, for_date):
     req = get_with_cookiejar(url, cj, params=params)
     ids = []
     for i in req.json():
-        logging.debug("Got scheduled lesson", i)
+        logging.info("Got scheduled lesson %d", i['id'])
         ids.append(i['id'])
     return ids
 
-def create_db_lessons(cj, for_date):
-    logging.debug("Creating meetings for cookie jar", cj, "and date", for_date.isoformat())
-    meetings = []
-    for id in get_scheduled_lesson_ids(cj, for_date):
-        try:
-            meetings.append(Meeting.create_from_meeting_id(id, cj))
-        except IntegrityError:
-            logging.debug("Lesson by id", id, "already in database, ignoring")
-    return meetings
+def create_db_lessons(cj, for_date, batch=None):
+    logging.info("Creating meetings for cookie jar %s and date %s", repr(cj), for_date.isoformat())
+    with db.atomic():
+        if batch is None:
+            batch = MeetingBatch.create()
+        meetings = []
+        for id in get_scheduled_lesson_ids(cj, for_date):
+            try:
+                meetings.append(Meeting.create_from_meeting_id(id, cj, batch))
+            except IntegrityError:
+                logging.debug("Lesson by id %d already in database, ignoring", id)
+        return meetings
