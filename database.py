@@ -49,6 +49,7 @@ class Meeting(MyModel):
     fetched_at = DateTimeField(default=datetime.datetime.now)
     batch = ForeignKeyField(MeetingBatch, backref='meetings', null=True)
 
+    meeting_link = TextField()
     data = TextField()
     lesson_name = CharField()
     starts_at = DateTimeField()
@@ -68,6 +69,7 @@ class Meeting(MyModel):
             return Meeting.create(meeting_id=id, data=json.dumps(data), lesson_name=data['_embedded']['link_views'][0]['link_name'], 
                     starts_at=parse_date(data['_embedded']['link_views'][0]['start_date_time']),
                     created_at=parse_date(data['_embedded']['link_views'][0]['sent_date_time']),
+                    meeting_link=data['_embedded']['link_views'][0]['link_url'],
                     group=fetched_using_cj.submitter.group, batch=batch)
         else:
             logging.error('Unexpected status code: %d %s %s', requests.status_code,'\n', req.text)
@@ -76,6 +78,6 @@ class Meeting(MyModel):
 
 @create_table
 class NotificationMethod(MyModel):
-    group = ForeignKeyField(Group)
+    group = ForeignKeyField(Group, backref='notification_methods')
     method_name = CharField()
     props = TextField()
