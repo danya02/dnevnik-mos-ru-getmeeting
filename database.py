@@ -16,6 +16,16 @@ def create_table(cls):
     db.create_tables([cls])
     return cls
 
+class DateTimeUTCField(Field):
+    field_type = 'INTEGER'
+    def db_value(self, value: datetime) -> int:
+        if value:
+            return value.timestamp()
+
+    def python_value(self, value: str) -> datetime.datetime:
+        if value:
+            return datetime.datetime.fromtimestamp(int(value), tz=datetime.timezone.utc)
+
 @create_table
 class Group(MyModel):
     name = CharField(unique=True)
@@ -31,13 +41,13 @@ class Probe(MyModel):
 class CookieJar(MyModel):
     submitter = ForeignKeyField(Probe)
     data = TextField()
-    submitted_at = DateTimeField(default=datetime.datetime.now)
+    submitted_at = DateTimeUTCField(default=datetime.datetime.now)
     is_valid = BooleanField(default=True)
 
 
 @create_table
 class MeetingBatch(MyModel):
-    fetched_at = DateTimeField(default=datetime.datetime.now)
+    fetched_at = DateTimeUTCField(default=datetime.datetime.now)
 
 def parse_date(date):
     return dateutil.parser.isoparse(date)
@@ -46,14 +56,14 @@ def parse_date(date):
 class Meeting(MyModel):
     group = ForeignKeyField(Group)
     meeting_id = IntegerField(unique=True)
-    fetched_at = DateTimeField(default=datetime.datetime.now)
+    fetched_at = DateTimeUTCField(default=datetime.datetime.now)
     batch = ForeignKeyField(MeetingBatch, backref='meetings', null=True)
 
     meeting_link = TextField()
     data = TextField()
     lesson_name = CharField()
-    starts_at = DateTimeField()
-    created_at = DateTimeField()
+    starts_at = DateTimeUTCField()
+    created_at = DateTimeUTCField()
     notified_asap = BooleanField(default=False)
     notified_before_lesson = BooleanField(default=False)
     

@@ -18,6 +18,7 @@ class DiscordWebhook:
     CONTRIBUTED_THANKS = 'The following meetings have been contributed.'
     CONTRIBUTED_SHOW_ONLY_TEN = 'Showing only 10 meetings out of the {count} received.'
     STARTS_SOON = 'This meeting will start in just {minutes_remaining} minutes. Join now!'
+    STARTED_AGO = 'This meeting started {minutes_ago} minutes. Join now!'
 
 
     def __init__(self, props):
@@ -53,9 +54,14 @@ class DiscordWebhook:
         self.send(message, embeds)
 
     def notify_before_start(self, meeting):
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
         time_until_lesson = meeting.starts_at - now
-        message = self.STARTS_SOON.format(minutes_remaining=int(time_until_lesson.total_seconds() // 60))
+        time_until_lesson = time_until_lesson.total_seconds()
+        if time_until_lesson > 0:
+            message = self.STARTS_SOON.format(minutes_remaining=int(time_until_lesson // 60))
+        else:
+            time_until_lesson *= -1
+            message = self.STARTED_AGO.format(minutes_ago=int(time_until_lesson // 60))
         embed = self.meeting_embed(meeting)
         self.send(message, [embed])
 

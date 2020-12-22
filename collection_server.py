@@ -45,9 +45,10 @@ def register_cookiejar(sk):
     logging.info('New cookie jar %s created', repr(new_cj))
 
     b = MeetingBatch.create()
-    dnevnik.create_db_lessons(new_cj, datetime.date.today(), batch=b)
-    dnevnik.create_db_lessons(new_cj, datetime.date.today() + datetime.timedelta(days=1), batch=b)
-    dnevnik.create_db_lessons(new_cj, datetime.date.today() + datetime.timedelta(days=2), batch=b)
+    today = datetime.datetime.now(tz=datetime.timezone.utc).date()
+    dnevnik.create_db_lessons(new_cj, today, batch=b)
+    dnevnik.create_db_lessons(new_cj, today + datetime.timedelta(days=1), batch=b)
+    dnevnik.create_db_lessons(new_cj, today + datetime.timedelta(days=2), batch=b)
 
     return jsonify({'result':'ok'})
 

@@ -14,7 +14,7 @@ def send_asap_notifications():
         meeting = Meeting.get_or_none(Meeting.notified_asap==False)
 
 def send_starting_soon_notifications():
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
     in_future_window = now + datetime.timedelta(0, 15*60)  # 15 minutes
     meetings_to_notify = Meeting.select().where(Meeting.notified_before_lesson == False).where(Meeting.starts_at < in_future_window)
     for meeting in meetings_to_notify:
